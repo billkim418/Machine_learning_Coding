@@ -12,5 +12,5 @@
 ---
 비선형적 차원축소 알고리즘 -manifold learning
 - isomap, lle, t-sne는 sklearn pacakge를 통해 구현
-- 간단하게 HELLO 데이터셋을 통해 알고리즘 구현 비교 
+- 직접 만든 DAHS 데이터셋을 통해 알고리즘 구현 비교 
 
