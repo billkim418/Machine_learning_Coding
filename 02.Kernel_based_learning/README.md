@@ -6,9 +6,11 @@
 ---
 ### Chapter
 - 해당 튜토리얼에서는 아래와 같은 순서대로 진행됩니다.
-1. SVM 이론적 원리 
+1. SVM 이론적 원리 및 구현
 2. SVM에서의 Kernel 작용
-3. Kernel Fisher Dsicriminant Anlysis
+3. Python 코드 구현
+4. FEEDBACK
+5. REFERENCE
 
 ### SVM의 이론적 원리 및 구현
 - 우선적으로 우리는 SVM이 선형 분류기라는 것을 알아야 합니다. 그렇다면 아래와 같은 그림이 주어져 있을 때 어떤 방식으로 분류해야 할까요? 
@@ -25,8 +27,8 @@ A : 이러한 근거를 마련하기 위해서 VC_dimension이라는 개념을 �
 
 - maring이란 해당 분류경계면으로부터 가장 가까운 점들과의 거리로 정의되고 오른쪽 그림은 이를 법선벡터를 이용해 표현한 그림입니다.
 
-- Q : 여기서 한가지 의문점이 생기는데 과연 마진이 최대화가 되면 VC dimension이 최소화가 될까요?
-- A : 구조적 위험 최소화(Structural Risk Minimization) 접근법을 통해 해결 가능합니다.
+Q : 여기서 한가지 의문점이 생기는데 과연 마진이 최대화가 되면 VC dimension이 최소화가 될까요?<br>
+A : 구조적 위험 최소화(Structural Risk Minimization) 접근법을 통해 해결 가능합니다.
 
  - 구조적 위험 최소화의 수식은 아래와 같습니다.
 
@@ -37,7 +39,7 @@ A : 이러한 근거를 마련하기 위해서 VC_dimension이라는 개념을 �
 ![image](https://user-images.githubusercontent.com/68594529/199479054-09142359-a748-44d8-ac12-bc6aaa069deb.png)
 
 해당 2가지 수식을 조합하면 아래와 같은 결론을 얻을 수 있습니다. 우선적으로 
-$∆^2 ↑ -> ⌈\frac{R^2}{∆^2} ⌉ ↓ -> min( ⌈\frac{R^2}{∆^2} ⌉,D) ↓ -> h ↓ ->  B ↓ -> R[f] ↓ $
+$∆^2(margin) ↑ -> ⌈\frac{R^2}{∆^2} ⌉ ↓ -> min( ⌈\frac{R^2}{∆^2} ⌉,D) ↓ -> h ↓ ->  B ↓ -> R[f]↓ $
 
 따라서 마진이 최대화 되면 VC dimension이 최소화되고 이는 즉 Capacity 항이 최소화되게 됩니다.
 
@@ -64,7 +66,7 @@ A : 원래 공간이 아닌 선형 분류가 가능한 더 고차원의 공간�
 커널 트릭 함수는 또한 단지 두 벡터간의 내적을 계산할수 있어야할 뿐만 아니라 아래의 Mercer's Theorem을 만족해야합니다. 해당 이론은 아래 그림을 참고해주세요.
 ![image](https://user-images.githubusercontent.com/68594529/199635742-b840bfeb-ddfe-4901-b31e-88d1d7ab603c.png)<br>
 출처 : https://sonsnotation.blogspot.com/2020/11/11-1-kernel.html
-해당 정리를 요약하면 아래와 같습니다.
+해당 정리를 요약하면 아래와 같습니다.<br>
 -> Kernel 함수 K 가 실수 scalar 를 출력하는 continuous function일 것 <br>
 -> Kernel 함수값으로 만든 행렬이 Symmetric(대칭행렬)이다.<br>
 -> Positive semi-definite(대각원소>0)라면 $K(xi, xj) = K(xj, xi) = <Φ(xi), Φ(xj)>$를 만족하는 mapping Φ 가 존재한다. 즉, Reproducing kernel Hilbert space라는 의미입니다.
@@ -73,6 +75,8 @@ A : 원래 공간이 아닌 선형 분류가 가능한 더 고차원의 공간�
 - Polynomial : $K(x,y) = ( x \cdot y + c) ^d
 - Linear : $K(x,y) = (x \cdot y^T)
 - Gaussian(RBF) : $exp(-\frac {||x-y||^2} {2\sigma^2})$
+
+이제 위의 원리들을 사용하여 파이썬 코드로 SVM을 구현해보겠습니다.
 
 #### Python code
 ```python
@@ -182,7 +186,7 @@ test_plot(X, y, SVC(kernel='poly', C=5, degree=3), axs[1], 'sklearn.svm.SVC')
 
 해당 결과를 보면 sklean의 svc의 성능이 최소 2배에서 5배까지 차이가 남을 확인할수 있었습니다. 해당 이유는 Sklearn 의 defalut 설정 때문인것 같습니다.
 - class sklearn.svm.SVC(*, C=1.0, kernel='rbf', degree=3, gamma='scale', coef0=0.0, shrinking=True, probability=False, tol=0.001, cache_size=200, class_weight=None, verbose=False, max_iter=-1, decision_function_shape='ovr', break_ties=False, random_state=None)
-- skleanr의 default parameter 설정을 보면 shrinking이란 설정이 defalut로 True가 되어 있는 것을 볼 수 있습니다. sklearn에서 참고 한 해당 논문을 보면(https://www.csie.ntu.edu.tw/~cjlin/papers/libsvm.pdf) , itertation이 커질수록 shrinking이 커질수록 training time이 줄어든다 되어 있습니다. 하지만 이러한 부분이 저의 논문에서는 구현이 되어 있지 않기 때문에 성능 차이가 발생하였다 판단하였습니다.
+- skleanr의 default parameter 설정을 보면 shrinking이란 설정이 defalut로 True가 되어 있는 것을 볼 수 있습니다. sklearn에서 참고 한 해당 논문을 보면(https://www.csie.ntu.edu.tw/~cjlin/papers/libsvm.pdf) , itertation이 커질수록 shrinking 기능이 training time을 줄어들게 작용한다고 되어 있습니다. 하지만 이러한 부분이 저의 코드에서는 구현이 되어 있지 않기 때문에 성능 차이가 발생하였다 판단하였습니다.
 
 ---
 
@@ -195,6 +199,6 @@ test_plot(X, y, SVC(kernel='poly', C=5, degree=3), axs[1], 'sklearn.svm.SVC')
 ## References
 [고려대학교 강필성 교수님](https://github.com/pilsung-kang)<br>
 [Sklearn - SVM](https://scikit-learn.org/stable/modules/svm.html#shrinking-svm)<br>
-[Shrinking paper] (https://www.csie.ntu.edu.tw/~cjlin/papers/libsvm.pdf)
+[Shrinking paper](https://www.csie.ntu.edu.tw/~cjlin/papers/libsvm.pdf)
 
 
