@@ -9,8 +9,8 @@
 1. SVM 이론적 원리 및 구현
 2. SVM에서의 Kernel 작용
 3. Python 코드 구현
-4. FEEDBACK
-5. REFERENCE
+4. Feedback
+5. Reference
 
 ### SVM의 이론적 원리 및 구현
 - 우선적으로 우리는 SVM이 선형 분류기라는 것을 알아야 합니다. 그렇다면 아래와 같은 그림이 주어져 있을 때 어떤 방식으로 분류해야 할까요? 
