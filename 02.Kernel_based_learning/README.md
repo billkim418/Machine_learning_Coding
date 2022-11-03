@@ -59,3 +59,87 @@ A : 원래 공간이 아닌 선형 분류가 가능한 더 고차원의 공간�
 
 여기서 커널 트릭(Kernel trick) 함수란 저차원의 데이터를 고차원의 공간에 매핑시켜 주는 함수를 의미합니다. 이 때, 고차원에서 데이터는 항상 두 벡터간의 내적으로만 존재하므로 이러한 커널 트릭 함수의 종류는 다양하게 사용될 수 있습니다.
 
+커널 트릭 함수는 또한 단지 두 벡터간의 내적을 계산할수 있어야할 뿐만 아니라 아래의 Mercer's Theorem을 만족해야합니다. 해당 이론은 아래 그림을 참고해주세요.
+![image](https://user-images.githubusercontent.com/68594529/199635742-b840bfeb-ddfe-4901-b31e-88d1d7ab603c.png)<br>
+출처 : https://sonsnotation.blogspot.com/2020/11/11-1-kernel.html
+해당 정리를 요약하면 아래와 같습니다.
+-> Kernel 함수 K 가 실수 scalar 를 출력하는 continuous function일 것 <br>
+-> Kernel 함수값으로 만든 행렬이 Symmetric(대칭행렬)이다.<br>
+-> Positive semi-definite(대각원소>0)라면 $K(xi, xj) = K(xj, xi) = <Φ(xi), Φ(xj)>$를 만족하는 mapping Φ 가 존재한다. 즉, Reproducing kernel Hilbert space라는 의미입니다.
+
+위와 같은 정리를 만족하는 대표적인 kernerl 트릭 함수의 종류는 아래와 같습니다.
+- Polynomial : $K(x,y) = ( x \cdot y + c) ^d
+- Linear : $K(x,y) = (x \cdot y^T)
+- Gaussian(RBF) : $exp(-\frac {||x-y||^2} {2\sigma^2})$
+
+#### Python code
+```
+import numpy as np
+
+class SVM:
+  #kernel 함수
+  def __init__(self, kernel='linear', C=10000.0, max_iter=100000, degree=3, gamma=1):
+    self.kernel = {'poly'  : lambda x,y: np.dot(x, y.T)**degree,
+                   'rbf'   : lambda x,y: np.exp(-gamma*np.sum((y - x[:,np.newaxis])**2, axis=-1)),
+                   'linear': lambda x,y: np.dot(x, y.T)}[kernel]
+    #오분류 비용 C
+    self.C = C
+    #반복 시행 횟수
+    self.max_iter = max_iter
+  # np.clip(array, min, max)함수를 이용하여 square로 변환함
+  # 최적의 선을 찾기 위한 반복 수행 과정중 square 재구축 과정(min,max 벗어나는 값 재구축됨)
+  def restrict_to_square(self, t, v0, u):
+    t = (np.clip(v0 + t*u, 0, self.C) - v0)[1]/u[1]
+    return (np.clip(v0 + t*u, 0, self.C) - v0)[0]/u[0]
+  # Optimization
+  def fit(self, X, y):
+    self.X = X.copy()
+    self.y = y * 2 - 1
+    self.lambdas = np.zeros_like(self.y, dtype=float)
+    self.K = self.kernel(self.X, self.X) * self.y[:,np.newaxis] * self.y
+    
+    #반복 수행하며 최적의 분류 경계면을 구함
+    for _ in range(self.max_iter):
+      for idxM in range(len(self.lambdas)):
+        idxL = np.random.randint(0, len(self.lambdas))
+        Q = self.K[[[idxM, idxM], [idxL, idxL]], [[idxM, idxL], [idxM, idxL]]]
+        v0 = self.lambdas[[idxM, idxL]]
+        k0 = 1 - np.sum(self.lambdas * self.K[[idxM, idxL]], axis=1)
+        u = np.array([-self.y[idxL], self.y[idxM]])
+        t_max = np.dot(k0, u) / (np.dot(np.dot(Q, u), u) + 1E-15)
+        self.lambdas[[idxM, idxL]] = v0 + u * self.restrict_to_square(t_max, v0, u)
+    
+    idx, = np.nonzero(self.lambdas > 1E-15)
+    self.b = np.mean((1.0 - np.sum(self.K[idx] * self.lambdas, axis=1)) * self.y[idx])
+  
+  #최종 분류면 
+  def decision_function(self, X):
+    return np.sum(self.kernel(X, self.X) * self.y * self.lambdas, axis=1) + self.b
+  
+  #예측 시행
+  def predict(self, X):
+    return (np.sign(self.decision_function(X)) + 1) // 2
+```
+## Sklearn의 wrapper 모델인 SVC와 성능 비교를 진행해보겠습니다.
+
+위의 파이썬 코드를 통해 SVM 분류기를 만들어보았습니다. 그렇다면 과연 해당 코드와 실제 Sklearn의 SVC와의 비교를 진행해보겠습니다.
+- 우선 분류 경계면을 생성하고 이를 비교하기 위한 test_plot 함수를 생성하겠습니다.
+```
+def test_plot(X, y, svm_model, axes, title):
+  plt.axes(axes)
+  xlim = [np.min(X[:, 0]), np.max(X[:, 0])]
+  ylim = [np.min(X[:, 1]), np.max(X[:, 1])]
+  xx, yy = np.meshgrid(np.linspace(*xlim, num=700), np.linspace(*ylim, num=700))
+  rgb=np.array([[210, 0, 0], [0, 0, 150]])/255.0
+  start_time = time.time()
+  svm_model.fit(X, y)
+  z_model = svm_model.decision_function(np.c_[xx.ravel(), yy.ravel()]).reshape(xx.shape)
+  end_time = time.time()
+  print("WorkingTime %s time : %s sec" % (svm_model, end_time-start_time))
+  plt.scatter(X[:, 0], X[:, 1], c=y, s=50, cmap='autumn')
+  plt.contour(xx, yy, z_model, colors='k', levels=[-1, 0, 1], alpha=0.5, linestyles=['--', '-', '--'])
+  plt.contourf(xx, yy, np.sign(z_model.reshape(xx.shape)), alpha=0.3, levels=2, cmap=ListedColormap(rgb), zorder=1)
+  plt.title(title)
+```
+위 
+
