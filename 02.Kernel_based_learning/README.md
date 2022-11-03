@@ -173,12 +173,28 @@ test_plot(X, y, SVC(kernel='poly', C=5, degree=3), axs[1], 'sklearn.svm.SVC')
 |선형 데이터|0.185 sec|0.289 sec|
 |비선형 데이터|0.177 sec|0.743 sec|
 
-해당 결과를 보면 sklean의 svc의 성능이 최소 2배에서 5배까지 차이가 남을 확인할수 있었습니다. 해당 이유는   
-
 - 원형 데이터셋 result
 ![image](https://user-images.githubusercontent.com/68594529/199649349-e4d3b6b6-bdf7-412f-8804-433227c48267.png)
 - 선형 데이터셋
 ![image](https://user-images.githubusercontent.com/68594529/199649471-91c760d1-c0f4-46cf-8a7c-c157ec49c7d6.png)
 - 비선형 데이터셋
 ![image](https://user-images.githubusercontent.com/68594529/199649486-24affd05-20f8-4e18-84c7-a532170444e0.png)
+
+해당 결과를 보면 sklean의 svc의 성능이 최소 2배에서 5배까지 차이가 남을 확인할수 있었습니다. 해당 이유는 Sklearn 의 defalut 설정 때문인것 같습니다.
+- class sklearn.svm.SVC(*, C=1.0, kernel='rbf', degree=3, gamma='scale', coef0=0.0, shrinking=True, probability=False, tol=0.001, cache_size=200, class_weight=None, verbose=False, max_iter=-1, decision_function_shape='ovr', break_ties=False, random_state=None)
+- skleanr의 default parameter 설정을 보면 shrinking이란 설정이 defalut로 True가 되어 있는 것을 볼 수 있습니다. sklearn에서 참고 한 해당 논문을 보면(https://www.csie.ntu.edu.tw/~cjlin/papers/libsvm.pdf) , itertation이 커질수록 shrinking이 커질수록 training time이 줄어든다 되어 있습니다. 하지만 이러한 부분이 저의 논문에서는 구현이 되어 있지 않기 때문에 성능 차이가 발생하였다 판단하였습니다.
+
+---
+
+## Feedback
+
+- 해당 튜토리얼은 SVM 모델 그중에서도 직관적인 classificiation에 초점을 맞춰 진행함으로써 regression 및 anamoly detection에서의 svm의 성능 검증이 부족합니다.
+- 다양한 데이터셋에서의 성능검증이 되었다면 사용자들이 상황에 맞게 선택하여 하이퍼 파라미터(C, Gamma)를 선택할 수 있었을것 같습니다.
+
+---
+## References
+[고려대학교 강필성 교수님](https://github.com/pilsung-kang)<br>
+[Sklearn - SVM](https://scikit-learn.org/stable/modules/svm.html#shrinking-svm)<br>
+[Shrinking paper] (https://www.csie.ntu.edu.tw/~cjlin/papers/libsvm.pdf)
+
 
