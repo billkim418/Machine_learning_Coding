@@ -6,7 +6,7 @@
 ---
 ### Chapter
 - 해당 튜토리얼에서는 아래와 같은 순서대로 진행됩니다.
-1. SVM 이론적 원리 및 구현
+1. SVM 이론적 원리 
 2. SVM에서의 Kernel 작용
 3. Kernel Fisher Dsicriminant Anlysis
 
@@ -54,7 +54,9 @@ SVM Modeling process
 위의 그림처럼 우리는 패널티를 줌으로써 좀더 soft하게 SVM을 설계할 수 있습니다. 이처럼 SVM에는 크사이 이외에도 Performance를 위한 장치들이 더 있습니다.<br>
 예를 들면, 오분류 비용 C 즉 패널티를 줄이면서 마진까지 같이 줄일 것인지 혹은 패널티를 받더라도 마진을 넓게 잡도록 학습시킬것인지 조절 가능합니다
 
-Q : 처음에 SVM이 선형 분류기라는 얘기를 하셨는데 그렇다면 비선형적인 데이터 어떻게 해결할수 있을까요?<br>
+### SVM에서의 Kernel 작용
+
+Q : 처음에 SVM이 선형 분류기라는 얘기를 하셨는데 그렇다면 비선형적인 데이터는 어떻게 해결할수 있을까요?<br>
 A : 원래 공간이 아닌 선형 분류가 가능한 더 고차원의 공간으로 데이터를 보내서(mappin) 후에 이를 학습하면 됩니다. 해당 과정에서 커널함수가 작용을 합니다.
 
 여기서 커널 트릭(Kernel trick) 함수란 저차원의 데이터를 고차원의 공간에 매핑시켜 주는 함수를 의미합니다. 이 때, 고차원에서 데이터는 항상 두 벡터간의 내적으로만 존재하므로 이러한 커널 트릭 함수의 종류는 다양하게 사용될 수 있습니다.
@@ -73,7 +75,7 @@ A : 원래 공간이 아닌 선형 분류가 가능한 더 고차원의 공간�
 - Gaussian(RBF) : $exp(-\frac {||x-y||^2} {2\sigma^2})$
 
 #### Python code
-```
+```python
 import numpy as np
 
 class SVM:
@@ -120,11 +122,11 @@ class SVM:
   def predict(self, X):
     return (np.sign(self.decision_function(X)) + 1) // 2
 ```
-## Sklearn의 wrapper 모델인 SVC와 성능 비교를 진행해보겠습니다.
+다음으로는 Sklearn의 wrapper 모델인 SVC와 성능 비교를 진행해보겠습니다.
 
 위의 파이썬 코드를 통해 SVM 분류기를 만들어보았습니다. 그렇다면 과연 해당 코드와 실제 Sklearn의 SVC와의 비교를 진행해보겠습니다.
 - 우선 분류 경계면을 생성하고 이를 비교하기 위한 test_plot 함수를 생성하겠습니다.
-```
+```python
 def test_plot(X, y, svm_model, axes, title):
   plt.axes(axes)
   xlim = [np.min(X[:, 0]), np.max(X[:, 0])]
@@ -141,5 +143,42 @@ def test_plot(X, y, svm_model, axes, title):
   plt.contourf(xx, yy, np.sign(z_model.reshape(xx.shape)), alpha=0.3, levels=2, cmap=ListedColormap(rgb), zorder=1)
   plt.title(title)
 ```
-위 
+위의 함수를 토대로 결정 경계면이 어떻게 형성되는지 차이를 보고 추가적으로 함수 알고리즘의 시간적 차이를 살펴보겠습니다.
+데이터셋 예시 : 원형 데이터, 선형 데이터, 비선형 데이터 
+```python
+import time
+from sklearn.svm import SVC
+import matplotlib.pyplot as plt
+import seaborn as sns; sns.set()
+from sklearn.datasets import make_blobs, make_circles
+from matplotlib.colors import ListedColormap
+
+X, y = make_circles(100, factor=.1, noise=.1)
+fig, axs = plt.subplots(nrows=1,ncols=2,figsize=(12,4))
+test_plot(X, y, SVM(kernel='rbf', C=10, max_iter=60, gamma=1), axs[0], 'OUR ALGORITHM')
+test_plot(X, y, SVC(kernel='rbf', C=10, gamma=1), axs[1], 'sklearn.svm.SVC')
+
+X, y = make_blobs(n_samples=50, centers=2, random_state=0, cluster_std=1.4)
+fig, axs = plt.subplots(nrows=1,ncols=2,figsize=(12,4))
+test_plot(X, y, SVM(kernel='linear', C=10, max_iter=60), axs[0], 'Our Algorithm')
+test_plot(X, y, SVC(kernel='linear', C=10), axs[1], 'sklearn.svm.SVC')
+
+fig, axs = plt.subplots(nrows=1,ncols=2,figsize=(12,4))
+test_plot(X, y, SVM(kernel='poly', C=5, max_iter=60, degree=3), axs[0], 'Our Algorithm')
+test_plot(X, y, SVC(kernel='poly', C=5, degree=3), axs[1], 'sklearn.svm.SVC')
+```
+||Sklearn svm|our svm|
+|:---:|:---:|:---:|
+|원형 데이터|0.285 sec|1.761 sec|
+|선형 데이터|0.185 sec|0.289 sec|
+|비선형 데이터|0.177 sec|0.743 sec|
+
+해당 결과를 보면 sklean의 svc의 성능이 최소 2배에서 5배까지 차이가 남을 확인할수 있었습니다. 해당 이유는   
+
+- 원형 데이터셋 result
+![image](https://user-images.githubusercontent.com/68594529/199649349-e4d3b6b6-bdf7-412f-8804-433227c48267.png)
+- 선형 데이터셋
+![image](https://user-images.githubusercontent.com/68594529/199649471-91c760d1-c0f4-46cf-8a7c-c157ec49c7d6.png)
+- 비선형 데이터셋
+![image](https://user-images.githubusercontent.com/68594529/199649486-24affd05-20f8-4e18-84c7-a532170444e0.png)
 
