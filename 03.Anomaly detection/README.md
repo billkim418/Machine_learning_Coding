@@ -41,6 +41,8 @@ A : 정답은 힘들다입니다. 그 이유는 분류 알고리즘으로는 소
 
 ![image](https://user-images.githubusercontent.com/68594529/201832124-d04f9f4a-e0f5-406d-a09e-e9580c6e521b.png)
 
+위의 그림을 보면 좀 더 쉽게 이해가 가리라 생각됩니다. 우선 왼쪽의 분류 모델같은 경우 A,B를 탐지 못하는 반면에 오른쪽의 이상치 탐지 모델은 정상인 데이터들을 학습함으로써 정상이 아닌 즉 이상치인 A, B 데이터를 탐지해 내게 됩니다.
+
 
 
 
@@ -230,7 +232,9 @@ test_plot(X, y, SVC(kernel='poly', C=5, degree=3), axs[1], 'sklearn.svm.SVC')
 ---
 ## References
 [고려대학교 강필성 교수님](https://github.com/pilsung-kang)<br>
-[Sklearn - SVM](https://scikit-learn.org/stable/modules/svm.html#shrinking-svm)<br>
+[Intorduction - pape](https://www.researchgate.net/publication/324532542_Smart_Driving_Behavior_Analysis_Based_on_Online_Outlier_Detection_Insights_from_a_Controlled_Case_Study)<br>
+
+
 [Shrinking paper](https://www.csie.ntu.edu.tw/~cjlin/papers/libsvm.pdf)
 
 
