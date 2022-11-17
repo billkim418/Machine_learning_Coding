@@ -68,8 +68,8 @@
 
 ## Feedback
 
-- 해당 튜토리얼은 SVM 모델 그중에서도 직관적인 classificiation에 초점을 맞춰 진행함으로써 regression 및 anamoly detection에서의 svm의 성능 검증이 부족합니다.
-- 다양한 데이터셋에서의 성능검증이 되었다면 사용자들이 상황에 맞게 선택하여 하이퍼 파라미터(C, Gamma)를 선택할 수 있었을것 같습니다.
+- 
+- 
 
 ---
 ## References
