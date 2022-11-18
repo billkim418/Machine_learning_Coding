@@ -74,11 +74,162 @@ AE의 단점
 - 따라서 단점을 보완하기 위해 noise를 첨가해 nosie가 제거된 결과값이 나오도록 함, 이 과정은 모델을 robust하게 함
 - Noise는 보통 Random Gaussian Nosie를 사용함
 
+### 국제 유가 데이터 이상치 탐지
+
+- 전체적인 3가지 유가 데이터의 분포 그래프입니다.
+![image](https://user-images.githubusercontent.com/68594529/202599784-d4196fbe-c8c3-4995-a1a1-0ff4dfe1a264.png)<br>
+해당 그래프를 통해 기간마다 조금씩 다르지만 전체적으로 WTi가격이 낮음을 확인할 수 있습니다.
+
+```python
+import os
+import tensorflow as tf
+from tensorflow.keras.preprocessing.sequence import TimeseriesGenerator
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Dropout, LSTM, RepeatVector, TimeDistributed
+from tensorflow.keras.losses import Huber
+from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
+from sklearn.preprocessing import StandardScaler
+
+
+# seed 설정
+tf.random.set_seed(418)
+np.random.seed(418)
+
+# Hyper parameter 설정
+window_size = 10
+batch_size = 32
+features = ['WTi', 'Brent', 'Dubai']
+n_features = len(features)
+TRAIN_SIZE = int(len(oil)*0.7)
+
+# Scaling
+scaler = StandardScaler()
+scaler = scaler.fit(oil.loc[:TRAIN_SIZE,features].values)
+scaled = scaler.transform(oil[features].values)
+
+# keras TimeseriesGenerator를 이용해 데이터셋 만들기
+train_gen = TimeseriesGenerator(
+    data = scaled,
+    targets = scaled,
+    length = window_size,
+    stride=1,
+    sampling_rate=1,
+    batch_size= batch_size,
+    shuffle=False,
+    start_index=0,
+    end_index=None,
+)
+
+valid_gen = TimeseriesGenerator(
+    data = scaled,
+    targets = scaled,
+    length = window_size,
+    stride=1,
+    sampling_rate=1,
+    batch_size=batch_size,
+    shuffle=False,
+    start_index=TRAIN_SIZE,
+    end_index=None,
+)
+
+print(train_gen[0][0].shape)  # (32, 10, 5)
+print(train_gen[0][1].shape)  # (32, 5)
+
+
+# Modleing
+# 2개 층의 LSTM으로 인코더 만듬
+# RepeatVector는 input을 window_size만큼 복사해줌
+model = Sequential([
+    # >> 인코더 시작
+    LSTM(64, activation='relu', return_sequences=True, input_shape=(window_size, n_features)),
+    LSTM(16, activation='relu', return_sequences=False),
+    ## << 인코더 끝
+    ## >> Bottleneck
+    RepeatVector(window_size),
+    ## << Bottleneck
+    ## >> 디코더 시작
+    LSTM(16, activation='relu', return_sequences=True),
+    LSTM(64, activation='relu', return_sequences=False),
+    Dense(n_features)
+    ## << 디코더 끝
+])
+
+
+# Checkpoint
+# 학습을 진행하며 validation 결과가 가장 좋은 모델을 저장해둠
+checkpoint_path = 'C:\\Users\\kimhongbum\PycharmProjects\BA\\mymodel.ckpt'
+checkpoint = ModelCheckpoint(checkpoint_path,
+                             save_weights_only=True,
+                             save_best_only=True,
+                             monitor='val_loss',
+                             verbose=1)
+
+# Earlystopping
+# 학습을 진행하며 validation 결과가 나빠지면 스톱. patience=5로 설정
+early_stop = EarlyStopping(monitor='val_loss', patience=5)
+
+model.compile(loss='mae', optimizer='adam',metrics=["mae"])
+
+
+hist = model.fit(train_gen,
+          validation_data=valid_gen,
+          steps_per_epoch=len(train_gen),
+          validation_steps=len(valid_gen),
+          epochs=50,
+          callbacks=[checkpoint, early_stop])
+
+
+model.load_weights(checkpoint_path)
+# <tensorflow.python.training.tracking.util.CheckpointLoadStatus at 0x7fa7e4312910>
+```
+
+
+```python
+import copy
+
+test_df = copy.deepcopy(oil.loc[window_size:]).reset_index(drop=True)
+test_df['Loss'] = mae_loss
+
+threshold = 0.5
+test_df.loc[test_df.Loss>threshold]
+
+```
+
+- 아래는 해당 모델의 학습 결과 그래프입니다.
+![image](https://user-images.githubusercontent.com/68594529/202600021-f725d892-e25f-4021-b6fb-d6b71f6c9afa.png)<br>
+
+- 해당 코드를 통해 아래 인덱스가 이상치임을 탐지하였습니다.<br>
+![image](https://user-images.githubusercontent.com/68594529/202600482-5c69b331-0a2d-469d-b79a-20bbc0b4767c.png)<br>
+
+- 다음으로는 해당 이상치 데이터들을 그래프릍 통해 살펴보겠습니다.
+
+```python
+fig = plt.figure(figsize=(12,15))
+
+# 가격들 그래프입니다
+ax = fig.add_subplot(311)
+ax.set_title('Open/Close')
+plt.plot(test_df.Date, test_df.WTi, linewidth=0.5, alpha=0.75, label='Close')
+plt.plot(test_df.Date, test_df.Brent, linewidth=0.5, alpha=0.75, label='Open')
+plt.plot(test_df.Date, test_df.Dubai,        'or', markevery=[mae_loss>threshold])
+
+# 오차율 그래프입니다
+ax = fig.add_subplot(313)
+ax.set_title('Loss')
+plt.plot(test_df.Date, test_df.Loss, linewidth=0.5, alpha=0.75, label='Loss')
+#plt.plot(test_df.Date, test_df.Loss, 'or', markevery=[mae_loss>threshold])
+```
+![image](https://user-images.githubusercontent.com/68594529/202600686-bc04b9d8-b675-4d20-9372-9d38b8b4aac2.png)
+
+- 이처럼 오토인코더를 통하여 특정 지점에서의 이상치를 탐지할수 있었습니다.
+- 만약 thershold 값을 좀더 robust하게 준다면 더 많은 이상치를 탐지할수 있겠지만 현실세게에서 실제로 그러한 지점을 이상치라 지정하기에는 많은 도메인 지식이 필요하다 생각합니다.
+
+
 
 ## Feedback
 
-- 
-- 
+- 시계열 이상치 탐지는 기존의 tabluar data와는 다르게 직관적으로 이상치가 와닿지 않았습니다.
+- 좀 더 다양한 시계열 이상치 탐지 알고리즘을 적용 비교했다면 좋았을것 같습니다.
 
 ---
 ## References
