@@ -6,8 +6,8 @@
 ## Chapter
 -  해당 튜토리얼에서는 아래와 같은 순서대로 진행됩니다.
 1. 이상치 데이터(Anomlay data)란?
-2. Density-based Anolmaly detection
-3. Model-based Anomaly detection
+2. Model-based Anomaly detection(Auto encoder)
+3. 국제 유가 데이터
 4. Feedback
 5. Reference
 ## 이상치 데이터(Anomaly data)란?
@@ -199,6 +199,7 @@ test_df.loc[test_df.Loss>threshold]
 ![image](https://user-images.githubusercontent.com/68594529/202600021-f725d892-e25f-4021-b6fb-d6b71f6c9afa.png)<br>
 
 - 해당 코드를 통해 아래 인덱스가 이상치임을 탐지하였습니다.<br>
+- [94, 96, 97, 98, 146, 158, 159, 164, 165, 167, 633, 667, 668] 총 13개의 이상치가 탐지되었습니다.
 ![image](https://user-images.githubusercontent.com/68594529/202600482-5c69b331-0a2d-469d-b79a-20bbc0b4767c.png)<br>
 
 - 다음으로는 해당 이상치 데이터들을 그래프릍 통해 살펴보겠습니다.
@@ -222,12 +223,15 @@ plt.plot(test_df.Date, test_df.Loss, linewidth=0.5, alpha=0.75, label='Loss')
 ![image](https://user-images.githubusercontent.com/68594529/202600686-bc04b9d8-b675-4d20-9372-9d38b8b4aac2.png)
 
 - 이처럼 오토인코더를 통하여 특정 지점에서의 이상치를 탐지할수 있었습니다.
+- 또한 loss 값 그래프를 통해 보면 2020년, 2022년 그 변동폭이 심함을 확인할수 있습니다. -> 또한 실제로 이러한 변동 폭이 발생하는 지점에서 이상치들이 탐지되었습니다
+- 이상치 
 - 만약 thershold 값을 좀더 robust하게 준다면 더 많은 이상치를 탐지할수 있겠지만 현실세게에서 실제로 그러한 지점을 이상치라 지정하기에는 많은 도메인 지식이 필요하다 생각합니다.
 
 
 
 ## Feedback
 
+- 초기 이상치 탐지 설명을 시계열로 설명했다면 직관적으로 이해가 빨랐을것 같습니다.
 - 시계열 이상치 탐지는 기존의 tabluar data와는 다르게 직관적으로 이상치가 와닿지 않았습니다.
 - 좀 더 다양한 시계열 이상치 탐지 알고리즘을 적용 비교했다면 좋았을것 같습니다.
 
