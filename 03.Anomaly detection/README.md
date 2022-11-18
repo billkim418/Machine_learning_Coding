@@ -7,9 +7,10 @@
 -  해당 튜토리얼에서는 아래와 같은 순서대로 진행됩니다.
 1. 이상치 데이터(Anomlay data)란?
 2. Model-based Anomaly detection(Auto encoder)
-3. 국제 유가 데이터
-4. Feedback
-5. Reference
+3. 국제 유가 데이터셋 적용
+4. 
+5. Feedback
+6. Reference
 ## 이상치 데이터(Anomaly data)란?
 ### 이상치 데이터?
 - Novel data- Positive
@@ -224,21 +225,24 @@ plt.plot(test_df.Date, test_df.Loss, linewidth=0.5, alpha=0.75, label='Loss')
 
 - 이처럼 오토인코더를 통하여 특정 지점에서의 이상치를 탐지할수 있었습니다.
 - 또한 loss 값 그래프를 통해 보면 2020년, 2022년 그 변동폭이 심함을 확인할수 있습니다. -> 또한 실제로 이러한 변동 폭이 발생하는 지점에서 이상치들이 탐지되었습니다
-- 이상치 
 - 만약 thershold 값을 좀더 robust하게 준다면 더 많은 이상치를 탐지할수 있겠지만 현실세게에서 실제로 그러한 지점을 이상치라 지정하기에는 많은 도메인 지식이 필요하다 생각합니다.
 
+## Conclusion
+[그래프로 본 2020년 국제유가…“1년 사이 2배 올랐다” - 에너지 신문](https://www.energy-news.co.kr/news/articleView.html?idxno=75546)<br>
+[국제유가 일주일 새 또 급락…주유소 반영은 “3주 이내” - 한겨례 신문](https://www.hani.co.kr/arti/economy/marketing/1050842.html)
 
+- 해당 기사들을 보면 최근들어 특정 년도인 2020년, 2022년도에 유가가 상승 혹은 하락했음을 확인할 수 있습니다.
+- 이러한 트렌드들은 시계열 데이터들에서 이상치로 탐지 될 수 있으며 이를 AE는 잘 탐지해냈다고 해석하였습니다.
+- 이상치 탐지 알고리즘이 정답은 아니겠지만 해당 알고리즘을 통하여 우리는 시계열 데이터에서 다른 패턴을 보이는 데이터들을 파악할수 있습니다.
 
 ## Feedback
 
-- 초기 이상치 탐지 설명을 시계열로 설명했다면 직관적으로 이해가 빨랐을것 같습니다.
-- 시계열 이상치 탐지는 기존의 tabluar data와는 다르게 직관적으로 이상치가 와닿지 않았습니다.
-- 좀 더 다양한 시계열 이상치 탐지 알고리즘을 적용 비교했다면 좋았을것 같습니다.
+- 해당 튜토리얼에서 이상치 탐지 설명을 시계열 데이터로 설명했다면 직관적으로 이해가 빨랐을것 같습니다.
+- 좀 더 다양한 시계열 이상치 탐지 알고리즘의 성능을 비교했다면 좋았을 것 같습니다. 예를 들어 고전적인 시계열 분해, ARIMA 등
 
 ---
 ## References
 [고려대학교 강필성 교수님](https://github.com/pilsung-kang)<br>
 [Intorduction - pape](https://www.researchgate.net/publication/324532542_Smart_Driving_Behavior_Analysis_Based_on_Online_Outlier_Detection_Insights_from_a_Controlled_Case_Study)<br>
-
 [국제 유가 데이터](http://www.krei.re.kr:18181/new_sub14)
 
