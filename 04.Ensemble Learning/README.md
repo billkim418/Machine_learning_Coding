@@ -1,19 +1,11 @@
 # Chapter 4 : Ensemble Learning
 
-이번 튜토리얼 에서는 앙상블(Ensemble)이라는 주제를 다뤄 보겠습니다. 앙상블이란 지금까지 튜토리얼에서 다뤄 본 여러 머신 러닝 알고리즘들을 다양한 방식으로 결합 혹은 여러번 학습함으로써 성능을 올리는 방법론입니다. 특히 우리는 그 중에서  현실 데이터셋과 결합해 실제 성능을 비교해보겠습니다.
+이번 튜토리얼 에서는 앙상블(Ensemble)이라는 주제를 다뤄 보겠습니다. 앙상블이란 지금까지 튜토리얼에서 다뤄 본 여러 머신 러닝 알고리즘들을 다양한 방식으로 결합 혹은 여러번 학습함으로써 성능을 올리는 방법론입니다. 특히 우리는 그 중에서 가장 유명한 모델인 XGBoost를 소개하고 이를 생존분석과 연결 이를 실제 데이터셋은 METBRIC(유방암 데이터셋)과의 적용을 해보겠습니다.
 [고려대학교 강필성 교수님](https://github.com/pilsung-kang)의 수업을 듣고 작성했음을 밝힙니다.
 
----
-## Chapter
--  해당 튜토리얼에서는 아래와 같은 순서대로 진행됩니다.
-1. 앙상블(Ensemble learning)란?
-2. 
-3. 
-5. Feedback
-6. Reference
 
 --- 
-## 1. 앙상블 학습(Ensemble learning)이란?
+## 앙상블 학습(Ensemble learning)이란?
 앙상블이란 간단하게 집단 지성의 아이디어에서 시작되었습니다. 간단하게 말해서 모델을 다양하게 사용하고 결과를 잘 섞어 더 나은 결과를 도출하는 방법론입니다. 해당 방법론을 적용하기 위해 크게 다양성(diversity)과 최종 결과물을 어떻게 결합하는지가 가장 중요합니다. 이를 아래의 앙상블 목적과 결합하여 살펴보겠습니다.<br>
 ### 앙상블의 목적 : 다수의 모델을 학습하여 오류의 감소를 추구
 - 분산의 감소에 의한 오류 감소 : 배깅(Bagging), 랜덤 포레스트(Random Forest)
@@ -48,11 +40,6 @@
 6. 교차검증을 통한 범용성 증가(In-bult cross-validation capability)
   - Cross-validation을 통한 데이터의 범용 가능성을 증가시킴
 
-### XGboost Vanilla 구현
-```python
-
-
-```
 ## 생존분석이란 무엇인가?
 - 생존분석[Survival analysis](https://en.wikipedia.org/wiki/Survival_analysis#:~:text=Survival%20analysis%20is%20a%20branch,and%20failure%20in%20mechanical%20systems.)이란
 통계학의 한 분야로, 어떠한 현상이 발생하기까지에 걸리는 시간에 대해 분석하는 방법입니다. 예를 들면, 생명체의 관찰시작부터 사망에 이르는 시간을 분석하는 등이 있습니다.
@@ -208,14 +195,75 @@ for scale in [1.5, 1.0, 0.5]:
     print(f"Average survival time: {preds.mean():.0f} days")
     print("----")
 ```
+|aft_loss_distribution|C-index|Average survival time|
+|:---:|:---:|:---:|
+|1.5|0.643|201 days|
+|1.0|0.651|159 days|
+|0.5|0.643|128 days|
+- 해당 표의 결과를 볼시 C-index 즉 위험 지표는 굉장히 준수한 편이다. 하지만 생존 기간의 예측이 loss 값 여기서는 noraml 분포인데 분포의 scale에 따라 70일 가까이 상이함을 알 수 있고 이러한 xgboost 생존분석 모델의 단점을 극복할 필요가 있었다. 즉 모델의 신뢰성 부분에 문제가 있었습니다.
 
+## XGBoost 생존분석 모델의 단점 극복(XGBSEDebiasedBCE)
+1. 다중 작업 로지스틱 회귀 방법
+2. BCE(이진 교차 엔트로피) 접근 방식 차용
+- 기존 앙상블의 각 트리에 있는 터미널 노드(leaf)의 입력 데이터를 임베딩(1,0)으로 변환하여 줍니다.(아래 그림 참고)
+![image](https://user-images.githubusercontent.com/68594529/205040774-3d353321-61df-4263-87f1-5ee5b72bf4a3.png)
 
+- 해결책 : 간단하게 기본 XGBoost 모델에 의해 생성된 임베딩 위에 로지스틱 회귀를 진행, 이를 각각 다른 사용자 정의에 의해 시간 예측을 진행합니다.
 
+![image](https://user-images.githubusercontent.com/68594529/205041401-9358c0b8-ccc2-44a4-8a24-0eb8cbd39940.png)
+- XGBoost가 'Leaf Ocuurence' 임베딩을 통해 Origninal Space로 변경됨
+- 각각의 로지스틱 선형회귀가 서로다른 time windows(사용자)에서 Censored 된 데이터를 제거한 뒤 변경된 Features에서 이벤트 확률을 예측하기 위해 사용함
+- 편향되지 않는 [KM](https://www.math.wustl.edu/~sawyer/handouts/greenwood.pdf) 커브를 생성하는 transforamtion을 통해, 예측된 선형 회귀가 전체 생존 함수를 생성함
+- 여기서 KM이란 Kaplan-Meier 공식으로서 로지스틱 회귀등에서 점확률을 추정하는 방식입니다. -> 이를 통해 곡선 생성 가능
+---
 
+- XGBKaplanNeighbors : 위의 방식으로 곡선을 생성하는 방법으로써 단점을 극복하였고, 해당 방식으로는 실제 생존 추정치를 구할 수 있습니다. 방식은 아래와 같습니다.
+![image](https://user-images.githubusercontent.com/68594529/205047045-d886d918-7ef0-4216-8b74-73f81d6d77ee.png)
+- 2번째 과정까지는 동일하게 진행 하지만 3번째 그림에서부터 이웃된 세트안에서 각 샘플에 대해 NN서치가 임베딩된 환경내에서 시행됩니다.
+- 이 후에 In Verctorized fashion에서 Neighbor-set을 위해서 KM 추정 방식을 수행합니다.
+- 하지만 이 방식은 코스트 계산 값이 매우 높으므로, 간단한 Tree 방식이 제안되었습니다.
+---
 
-----
+- XGBKaplanTree : 계산 과정이 복잡한 NN 과정을 생략하는 대신에 XGBoost를 통해 단일 트리를 구현하고 각 노드에서 KM 곡선을 계산하는 간단한 방식입니다.
+![image](https://user-images.githubusercontent.com/68594529/205048061-534fd08a-edfb-448d-8f33-58dd43c9cb66.png)
+- 기존의 2가지 방식보다 간단하게 3번째 그림에서 NN서치를 하지 않고, 비슷한 군집에 의해서만 묶이는 것을 볼 수 있고 오히려 NN의 편향성을 떨어트리는 결과도 보여줍니다.
+- 단, 단일 트리를 피팅하므로 예측력이 나빠질 가능성을 내포하고 있습니다.
+## xgbse를 이용한 성능 비교
 
-## Conclusion
+```python
+from xgbse import XGBSEKaplanNeighbors
+from xgbse._kaplan_neighbors import DEFAULT_PARAMS
+from xgbse.metrics import concordance_index
+
+for scale in [1.5, 1.0, 0.5]:
+
+    DEFAULT_PARAMS['aft_loss_distribution_scale'] = scale
+
+    xgbse_model = XGBSEKaplanNeighbors(DEFAULT_PARAMS, n_neighbors=30)
+    xgbse_model.fit(
+        X_train, y_train,
+        validation_data = (X_valid, y_valid),
+        early_stopping_rounds=10,
+        time_bins=TIME_BINS
+    )
+
+    preds = xgbse_model.predict(X_valid)
+    cind = concordance_index(y_valid, preds)
+    avg_probs = preds[[30, 90, 150]].mean().values.round(4).tolist()
+
+    print(f"aft_loss_distribution_scale: {scale}")
+    print(f"C-index: {cind:.3f}")
+    print(f"Average probability of survival at [30, 90, 150] days: {avg_probs}")
+    print("----")
+
+```
+|aft_loss_distribution|C-index|30 days| 90days|150 days|
+|:---:|:---:|:---:|:---:|:---:|
+|1.5|0.625|0.9085|0.6855|0.5289|
+|1.0|0.646|0.9092|0.6831|0.5287|
+|0.5|0.648|0.918|0.6971|0.5321|
+- 해당 표를 통해 우리는 모델이 각각의 생존 예측 확률을 일괄적으로 높은 C-index내에서 나타냄을 보여주고 있습니다.
+---
 
 ## Feedback
 
@@ -223,5 +271,6 @@ for scale in [1.5, 1.0, 0.5]:
 [고려대학교 강필성 교수님](https://github.com/pilsung-kang)<br>
 [XGBoost-Cox](https://forecast.global/insight/underrated-in-ml-intro-to-survival-analysis/)
 [C-index](https://square.github.io/pysurvival/metrics/c_index.html)
+[Kaplan-Meier frmulation](https://www.math.wustl.edu/~sawyer/handouts/greenwood.pdf) 
 
 
