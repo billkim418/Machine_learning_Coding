@@ -74,7 +74,7 @@
 - 다른 하나는 알고리즘 모델을 사용하고, 데이터 메커니즘은 알 수 없는 것으로 취급(Blackbox)합니다.<br>
 ---
 
-### 생존 분석을 위한 XGBoost
+### 생존 분석을 위한 기존의 XGBoost 
 기존의 XGBoost 모델은 생존 분석을 위해 Cox 및 AFT(Accerlated Failure Time) 두 가지 방법을 제공합니다.
 - [Cox 모델](https://forecast.global/insight/underrated-in-ml-intro-to-survival-analysis/) : 시간이나 생존이 아닌 위험만 출력함
 - [AFT 모델](https://xgboost.readthedocs.io/en/latest/tutorials/aft_survival_analysis.html) : 각 샘플의 예상 생존 시간으로 해석되어야 하는 값을 출력함 
@@ -82,12 +82,138 @@
 해당 튜토리얼에서는 AFT 모델만을 다루겠습니다. Cox 모델에 관심있으신 분들은 위의 링크를 참조하시면 될 것 같습니다. 다음으로 소개해 드릴 AFT 기법은 기본적으로 아래 모형을 가정합니다.
 $$lnY = w \bullet x + \sigma Z$$
 - Probability Density Function(PDF)
--
 |AFT_loss_distribution|Probability Density Function(PDF)|
 |:---:|:---:|
 |normal|$$\frac{exp(-z^/2)}{\sqrt{2\pi}}$$|
 |logsitic|$$\frac{e^z}{(1+e^z)^2}$$|
 |extreme|$$e^z e^-expz$$|
+### 사용 데이터셋 (METABRIC)
+- METABRIC(Molecular Taxonomy of Breast Cancer International Consortium) : 실제 유방암 데이터셋으로서, 유방암의 조기 진단과 함께 유방암의 예후 예측 등 메디컬 분야에서 다양하게 연구 사용되어지는 데이터셋입니다.
+- pycox 패키지를 통해 간단하게 호출 및 사용이 가능하다는 장점을 가지고 있습니다.
+
+```python
+# importing dataset from pycox package
+from pycox.datasets import metabric
+
+df = metabric.read_df()
+
+X = df.drop(['duration', 'event'], axis=1)
+y = convert_to_structured(df['duration'], df['event'])
+
+(X_train, X_valid, y_train, y_valid) = train_test_split(X, y, test_size=0.2)
+
+## pre selected params for models ##
+
+PARAMS_XGB_AFT = {
+    'objective': 'survival:aft',
+    'eval_metric': 'aft-nloglik',
+    'aft_loss_distribution': 'normal',
+    'aft_loss_distribution_scale': 1.0,
+    'tree_method': 'hist', 
+    'learning_rate': 5e-2, 
+    'max_depth': 8, 
+    'booster':'dart',
+    'subsample':0.5,
+    'min_child_weight': 50,
+    'colsample_bynode':0.5
+}
+# 실험읋 위한 하이퍼 파라미터 설정
+PARAMS_XGB_COX = {
+    'objective': 'survival:cox',
+    'tree_method': 'hist', 
+    'learning_rate': 5e-2, 
+    'max_depth': 8, 
+    'booster':'dart',
+    'subsample':0.5,
+    'min_child_weight': 50, 
+    'colsample_bynode':0.5
+}
+
+PARAMS_TREE = {
+    'objective': 'survival:cox',
+    'eval_metric': 'cox-nloglik',
+    'tree_method': 'hist', 
+    'max_depth': 100, 
+    'booster':'dart', 
+    'subsample': 1.0,
+    'min_child_weight': 50, 
+}
+
+PARAMS_LR = {
+    'C': 1e-3,
+    'max_iter': 500
+}
+
+N_NEIGHBORS = 50
+
+TIME_BINS = np.arange(15, 315, 15)
+
+```
+- 해당 loss 값들의 영향을 또한 C-index로 살펴보겠습니다.
+- C-index : 해당 모델의 risk score가 Event즉 생존을 얼마나 잘 반영하는지를 나타내는 지표고 계산 방법은 아래와 같습니다.
+- ![image](https://user-images.githubusercontent.com/68594529/205036103-f5adda95-3d6b-40f6-9cf1-4c3917cdf397.png)
+```python
+# converting to xgboost format
+dtrain = convert_data_to_xgb_format(X_train, y_train, 'survival:aft')
+dval = convert_data_to_xgb_format(X_valid, y_valid, 'survival:aft')
+
+# training model
+bst = xgb.train(
+    PARAMS_XGB_AFT,
+    dtrain,
+    num_boost_round=1000,
+    early_stopping_rounds=10,
+    evals=[(dval, 'val')],
+    verbose_eval=0
+)
+
+# predicting and evaluating
+preds = bst.predict(dval)
+cind = concordance_index(y_valid, -preds, risk_strategy='precomputed')
+```
+- C-index: 0.658
+- Average survival time: 163 days
+- xgboost 역시 성능 자체는 매우 뛰어남을 알 수 있다.
+
+### 하이퍼 파라미터 변경에 따른 성능 차이 비교
+
+```python
+# saving predictions to plot later
+preds_dict = {}
+
+# loop to show different scale results
+for scale in [1.5, 1.0, 0.5]:
+    
+    # chaning parameter
+    PARAMS_XGB_AFT['aft_loss_distribution_scale'] = scale
+    
+    # training model
+    bst = xgb.train(
+        PARAMS_XGB_AFT,
+        dtrain,
+        num_boost_round=1000,
+        early_stopping_rounds=10,
+        evals=[(dval, 'val')],
+        verbose_eval=0
+    )
+
+    # predicting and evaluating
+    preds = bst.predict(dval)
+    cind = concordance_index(y_valid, -preds, risk_strategy='precomputed')
+
+    preds_dict[scale] = preds
+
+    print(f"aft_loss_distribution_scale: {scale}")
+    print(f"C-index: {cind:.3f}")
+    print(f"Average survival time: {preds.mean():.0f} days")
+    print("----")
+```
+
+
+
+
+
+----
 
 ## Conclusion
 
@@ -96,6 +222,6 @@ $$lnY = w \bullet x + \sigma Z$$
 ## References
 [고려대학교 강필성 교수님](https://github.com/pilsung-kang)<br>
 [XGBoost-Cox](https://forecast.global/insight/underrated-in-ml-intro-to-survival-analysis/)
-
+[C-index](https://square.github.io/pysurvival/metrics/c_index.html)
 
 
