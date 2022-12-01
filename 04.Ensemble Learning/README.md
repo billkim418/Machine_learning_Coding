@@ -71,11 +71,13 @@
 해당 튜토리얼에서는 AFT 모델만을 다루겠습니다. Cox 모델에 관심있으신 분들은 위의 링크를 참조하시면 될 것 같습니다. 다음으로 소개해 드릴 AFT 기법은 기본적으로 아래 모형을 가정합니다.
 $$lnY = w \bullet x + \sigma Z$$
 - Probability Density Function(PDF)
+
 |AFT_loss_distribution|Probability Density Function(PDF)|
 |:---:|:---:|
 |normal|$$\frac{exp(-z^/2)}{\sqrt{2\pi}}$$|
 |logsitic|$$\frac{e^z}{(1+e^z)^2}$$|
-|extreme|$$e^z e^-expz$$|
+|extreme|$$e^z e^(-expz)$$|
+
 ### 사용 데이터셋 (METABRIC)
 - METABRIC(Molecular Taxonomy of Breast Cancer International Consortium) : 실제 유방암 데이터셋으로서, 유방암의 조기 진단과 함께 유방암의 예후 예측 등 메디컬 분야에서 다양하게 연구 사용되어지는 데이터셋입니다.
 - pycox 패키지를 통해 간단하게 호출 및 사용이 가능하다는 장점을 가지고 있습니다.
