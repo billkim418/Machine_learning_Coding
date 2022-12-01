@@ -69,7 +69,9 @@
 - [AFT 모델](https://xgboost.readthedocs.io/en/latest/tutorials/aft_survival_analysis.html) : 각 샘플의 예상 생존 시간으로 해석되어야 하는 값을 출력함 
 
 해당 튜토리얼에서는 AFT 모델만을 다루겠습니다. Cox 모델에 관심있으신 분들은 위의 링크를 참조하시면 될 것 같습니다. 다음으로 소개해 드릴 AFT 기법은 기본적으로 아래 모형을 가정합니다.
-$$lnY = w \bullet x + \sigma Z$$
+$$lnY = \< w, x \ >+ \sigma Z$$
+![image](https://user-images.githubusercontent.com/68594529/205066946-4634f2a0-e733-4834-b348-e6efffdbbacd.png)
+
 - Probability Density Function(PDF)
 
 |AFT_loss_distribution|Probability Density Function(PDF)|
