@@ -1,7 +1,6 @@
 # Chapter 5 : Semi-supervised Learning
 
-이번 튜토리얼 에서는 앙상블(Ensemble)이라는 주제를 다뤄 보겠습니다. 앙상블이란 지금까지 튜토리얼에서 다뤄 본 여러 머신 러닝 알고리즘들을 다양한 방식으로 결합 혹은 여러번 학습함으로써 성능을 올리는 방법론입니다. 특히 우리는 그 중에서 가장 유명한 모델인 XGBoost를 소개하고 이를 생존분석과 연결 이를 실제 데이터셋은 METBRIC(유방암 데이터셋)과의 적용을 해보겠습니다.
-추가적으로 해당 레포는 [고려대학교 강필성 교수님](https://github.com/pilsung-kang)의 수업을 듣고 작성했음을 밝힙니다.
+이번 튜토리얼 에서는 준지도학습(Semi-supervised learning)이라는 주제를 다뤄 보겠습니다. 해당 튜토리얼에서는 그중에서도 consistency regularization의 5가지 모델들의 구조를 살펴보고 해당 모델들이 구현된 코드들을 살펴보겠습니다. 추가적으로 해당 레포는 [고려대학교 강필성 교수님](https://github.com/pilsung-kang)의 수업을 듣고 작성했음을 밝힙니다.
 
 --- 
 ## 준지도 학습(Semi-supervised learning)이란?
@@ -1515,8 +1514,7 @@ def main(context):
             }, is_best, checkpoint_path, epoch + 1)
 
     LOG.info('Best top1 prediction: {0}'.format(best_prec1))
----
-
+```
 ## Conclusion
 - 5가지 모델들의 구조 및 실행코드들을 살펴봄
 
