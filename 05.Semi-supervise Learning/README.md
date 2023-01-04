@@ -10,7 +10,7 @@
 - 준지도 학습의 종류에는 아래와 같은 모델들이 있는데 해당 튜토리얼 에서는 Consistency regularization 위주로 구현 및 비교해보겠습니다.
 ![image](https://user-images.githubusercontent.com/68594529/209619297-a61c375f-97e6-4be9-ad69-18325a80e99f.png)
 
-## Consistency regularizatio
+## Consistency regularization
 - Unlabeled data에 작은 변화를 주어도 예측의 결과에는 일관성이 있을거라는 가정에서 출발하였습니다.
 - Unlabeded data는 예측결과를 알 수 없기 때문에 data augmentation을 통해 class가 바뀌지 않을 정도의 변화를 줬을 때, 원래 데이터와의 예측결과가 같아지도록 unsupervised loss를 주어 학습시키는게 주된 방법입니다.
 
